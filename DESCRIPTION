@@ -1,0 +1,13 @@
+Package: paleovieweR
+Type: Package
+Title: Handle paleoview data
+Version: 0.1.0
+Author: Diego Nieto Lugilde
+Maintainer: The package maintainer <dnietolugilde@gmail.com>
+Description: This package aims to assist in handling and using paleoview data in R.
+License: LICENSE
+Encoding: UTF-8
+LazyData: true
+Required: ncdf4
+	  raster
+	  
