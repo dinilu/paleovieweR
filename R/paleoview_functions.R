@@ -1,3 +1,28 @@
+.check_existing_file <- function(pathfile, overwrite) {
+  if(file.exists(pathfile)){
+    if(overwrite == FALSE){
+      stop("File already exists and overwrite option set to FALSE, if you want to overwrite turn the option to TRUE.")
+    }
+  }
+}
+
+.check_and_create_directory <- function(out.path) {
+  if(!dir.exists(out.path)){
+    dir.create(out.path)
+  }
+}
+
+.open_or_create_ncfile <- function(nc.source, vars) {
+  if(file.exists(nc.source)){
+    cat("Opening existing NetCDF file.", "\n")
+    nc.trg <- nc_open(nc.source, write = TRUE)
+  }else{
+    cat("Creating new NetCDF file.", "\n")
+    nc.trg <- nc_create(nc.source, vars)
+  }
+  return(nc.trg)
+}
+
 #' Crop PaleoView NetCDF files
 #'
 #' @param file
@@ -16,12 +41,9 @@ crop_paleoview <- function(nc.source, ext, out.path, overwrite = FALSE){
   # overwrite <- FALSE
 
   pathfile <- paste(out.path, nc.source, sep="/")
-  if(file.exists(pathfile)){
-    if(overwrite == FALSE){
-      stop("File already exists and overwrite option set to FALSE, if you want to overwrite turn the option to TRUE.")
-    }
-  }
-
+  
+  .check_existing_file(pathfile, overwrite)
+  
   nc <- nc_open(nc.source)
   lon <- ncvar_get(nc, "longitudes")
   lon_i <- which(lon >= ext[1] & lon <= ext[2])
@@ -39,7 +61,9 @@ crop_paleoview <- function(nc.source, ext, out.path, overwrite = FALSE){
   varnames <- sapply(1:nc$nvars, function(i, x){x$var[[i]]$name}, nc)
 
   vars <- list()
+  pb <- txtProgressBar(min = 0, max = length(varnames), initial = 1, style=3)
   for(i in 7:length(varnames)){
+    setTxtProgressBar(pb, i)
     varname <- nc$var[[i]]$name
     varunits <- nc$var[[i]]$units
     vardim <- list(latdim, londim, timedim)
@@ -51,28 +75,25 @@ crop_paleoview <- function(nc.source, ext, out.path, overwrite = FALSE){
     varchunksizes <- c(length(lat_i), length(lon_i), length(mon_i))
     vars[[i-6]] <- ncvar_def(varname, varunits, vardim, fillvalue, varlongname, varprec, varshuffle, varcompression, varchunksizes)
   }
-
-  if(!dir.exists(out.path)){
-    dir.create(out.path)
-  }
+  close(pb)
+  
+  .check_and_create_directory(out.path)
 
   wd.init <- getwd()
   setwd(out.path)
 
-  if(file.exists(nc.source)){
-    cat("Opening existing NetCDF file.", "\n")
-    nc.target <- nc_open(nc.source, write = TRUE)
-  }else{
-    cat("Creating new NetCDF file.", "\n")
-    nc.target <- nc_create(nc.source, vars)
-  }
+  nc.target <- .open_or_create_ncfile(nc.source, vars)
 
+  pb <- txtProgressBar(min = 0, max = length(varnames), initial = 1, style=3)
   for(i in 7:length(varnames)){
+    setTxtProgressBar(pb, i)
     varvals <- ncvar_get(nc, varnames[[i]])
     varvals <- varvals[lon_i, lat_i, mon_i]
     varvals <- aperm(varvals, c(2, 1, 3))
     ncvar_put(nc.target, varnames[[i]], varvals)
   }
+  close(pb)
+  
   nc_close(nc.target)
   nc_close(nc)
   setwd(wd.init)
@@ -97,12 +118,9 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
   # out.path <- "anomalies"
 
   pathfile <- paste(out.path, nc.source, sep="/")
-  if(file.exists(pathfile)){
-    if(overwrite == FALSE){
-      stop("File already exists and overwrite option set to FALSE, if you want to overwrite turn the option to TRUE.")
-    }
-  }
-
+  
+  .check_existing_file(pathfile, overwrite)
+  
   # Extract values of baseline conditions
   nc.bl <- nc_open(nc.baseline)
   var.bl <- ncvar_get(nc.bl, varid=baseline)
@@ -110,7 +128,10 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
   nc.src <- nc_open(nc.source)
   varnames <- names(nc.src$var)
   vars <- list()
+  
+  pb <- txtProgressBar(min = 0, max = length(varnames), initial = 1, style=3)
   for(i in 1:length(varnames)){
+    setTxtProgressBar(pb, i)
     varname <- nc.src$var[[i]]$name
     varunits <- nc.src$var[[i]]$units
     vardim <- nc.src$var[[i]]$dim
@@ -123,22 +144,15 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
     varchunksizes <- nc.src$var[[i]]$chunksizes
     vars[[i]] <- ncvar_def(varname, varunits, vardim, varfillvalue, varlongname, varprec, varshuffle, varcompression, varchunksizes)
   }
+  close(pb)
 
-  if(!dir.exists(out.path)){
-    dir.create(out.path)
-  }
-
+  .check_and_create_directory(out.path)
+  
   wd.init <- getwd()
   setwd(out.path)
 
-  if(file.exists(nc.source)){
-    cat("Opening existing NetCDF file.", "\n")
-    nc.trg <- nc_open(nc.source, write = TRUE)
-  }else{
-    cat("Creating new NetCDF file.", "\n")
-    nc.trg <- nc_create(nc.source, vars)
-  }
-
+  nc.trg <- .open_or_create_ncfile(nc.source, vars)
+ 
   # Extract values of all time periods in the file and compute anomalies
   pb <- txtProgressBar(min = 0, max = length(nc.src$var), initial = 1, style=3)
   for(i in 1:length(nc.src$var)){
@@ -181,12 +195,9 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
   # res.src <- 2.5
 
   pathfile <- paste(out.path, nc.source, sep="/")
-  if(file.exists(pathfile)){
-    if(overwrite == FALSE){
-      stop("File already exists and overwrite option set to FALSE (default), if you want to overwrite turn the option to TRUE.")
-    }
-  }
 
+  .check_existing_file(pathfile, overwrite)
+  
   nc.src <- nc_open(nc.source)
   varnames <- names(nc.src$var)
   vars <- list()
@@ -229,20 +240,12 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
   }
   close(pb)
 
-  if(!dir.exists(out.path)){
-    dir.create(out.path)
-  }
-
+  .check_and_create_directory(out.path)
+  
   wd.init <- getwd()
   setwd(out.path)
 
-  if(file.exists(nc.source)){
-    cat("Opening existing NetCDF file.", "\n")
-    nc.trg <- nc_open(nc.source, write = TRUE)
-  }else{
-    cat("Creating new NetCDF file.", "\n")
-    nc.trg <- nc_create(nc.source, vars)
-  }
+  nc.trg <- .open_or_create_ncfile(nc.source, vars)
 
   raster.trg <- brick(nrows=length(lat.trg), ncols=length(lon.trg), xmn=lon.bb[1], xmx=lon.bb[2], ymn=lat.bb[1], ymx=lat.bb[2], nl=length(mon))
 
