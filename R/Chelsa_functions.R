@@ -7,9 +7,11 @@
 #' @export
 #'
 #' @examples
-download_chelsa <- function(chelsa_var, months){
+download_chelsa <- function(chelsa_var, months, directory){
+  output <- paste(directory, chelsa_var, sep="/")
+  .check_and_create_directory(output)
+  # if(!dir.exists(chelsa_var)){ dir.create(chelsa_var) }
   months <- sprintf("%02d", months)
-  if(!dir.exists(chelsa_var)){ dir.create(chelsa_var) }
   for(month in months){
     if(chelsa_var %in% c("tmax", "tmin")){
       urldir <- paste0("https://www.wsl.ch/lud/chelsa/data/climatologies/temp/integer/", chelsa_var, "/")
@@ -18,7 +20,7 @@ download_chelsa <- function(chelsa_var, months){
       urldir <- paste0("https://www.wsl.ch/lud/chelsa/data/climatologies/", chelsa_var, "/")
       file <- paste0("CHELSA_", chelsa_var, "_", month, "_V1.2_land.tif")
     }
-    download.file(paste0(urldir, file), paste0(chelsa_var, "/", file), "curl")
+    download.file(paste0(urldir, file), paste0(output, "/", file), "curl")
   }
 }
 
