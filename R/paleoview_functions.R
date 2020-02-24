@@ -39,12 +39,16 @@ crop_paleoview <- function(nc.source, ext, out.path, overwrite = FALSE){
   # ext <- study_area
   # out.path <- "croped"
   # overwrite <- FALSE
-
-  pathfile <- paste(out.path, nc.source, sep="/")
+ 
+  in.path <- dirname(nc.source)
+  nc.source <- basename(nc.source)
   
-  .check_existing_file(pathfile, overwrite)
+  outpathfile <- paste(out.path, nc.source, sep="/")
+  inpathfile <- paste(in.path, nc.source, sep="/")
   
-  nc <- nc_open(nc.source)
+  .check_existing_file(outpathfile, overwrite)
+  
+  nc <- nc_open(inpathfile)
   lon <- ncvar_get(nc, "longitudes")
   lon_i <- which(lon >= ext[1] & lon <= ext[2])
   lat <- ncvar_get(nc,"latitudes")
@@ -79,10 +83,7 @@ crop_paleoview <- function(nc.source, ext, out.path, overwrite = FALSE){
   
   .check_and_create_directory(out.path)
 
-  wd.init <- getwd()
-  setwd(out.path)
-
-  nc.target <- .open_or_create_ncfile(nc.source, vars)
+  nc.target <- .open_or_create_ncfile(outpathfile, vars)
 
   pb <- txtProgressBar(min = 0, max = length(varnames), initial = 1, style=3)
   for(i in 7:length(varnames)){
@@ -96,8 +97,6 @@ crop_paleoview <- function(nc.source, ext, out.path, overwrite = FALSE){
   
   nc_close(nc.target)
   nc_close(nc)
-  setwd(wd.init)
-
 }
 
 #' Title
@@ -117,15 +116,20 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
   # baseline <- "1951AD-1989AD/1989AD"
   # out.path <- "anomalies"
 
-  pathfile <- paste(out.path, nc.source, sep="/")
+  in.path <- dirname(nc.source)
+  nc.source <- basename(nc.source)
   
-  .check_existing_file(pathfile, overwrite)
+  outpathfile <- paste(out.path, nc.source, sep="/")
+  inpathfile <- paste(in.path, nc.source, sep="/")
+  basepathfile <- paste(in.path, nc.baseline, sep="/")
+  
+  .check_existing_file(outpathfile, overwrite)
   
   # Extract values of baseline conditions
-  nc.bl <- nc_open(nc.baseline)
+  nc.bl <- nc_open(basepathfile)
   var.bl <- ncvar_get(nc.bl, varid=baseline)
 
-  nc.src <- nc_open(nc.source)
+  nc.src <- nc_open(inpathfile)
   varnames <- names(nc.src$var)
   vars <- list()
   
@@ -148,10 +152,7 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
 
   .check_and_create_directory(out.path)
   
-  wd.init <- getwd()
-  setwd(out.path)
-
-  nc.trg <- .open_or_create_ncfile(nc.source, vars)
+  nc.trg <- .open_or_create_ncfile(outpathfile, vars)
  
   # Extract values of all time periods in the file and compute anomalies
   pb <- txtProgressBar(min = 0, max = length(nc.src$var), initial = 1, style=3)
@@ -172,7 +173,6 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
   nc_close(nc.bl)
   nc_close(nc.src)
   nc_close(nc.trg)
-  setwd(wd.init)
 }
 
 
@@ -194,11 +194,15 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
   # downscale.factor <- 0.2
   # res.src <- 2.5
 
-  pathfile <- paste(out.path, nc.source, sep="/")
-
-  .check_existing_file(pathfile, overwrite)
+  in.path <- dirname(nc.source)
+  nc.source <- basename(nc.source)
   
-  nc.src <- nc_open(nc.source)
+  outpathfile <- paste(out.path, nc.source, sep="/")
+  inpathfile <- paste(in.path, nc.source, sep="/")
+
+  .check_existing_file(outpathfile, overwrite)
+  
+  nc.src <- nc_open(inpathfile)
   varnames <- names(nc.src$var)
   vars <- list()
 
@@ -242,10 +246,7 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
 
   .check_and_create_directory(out.path)
   
-  wd.init <- getwd()
-  setwd(out.path)
-
-  nc.trg <- .open_or_create_ncfile(nc.source, vars)
+  nc.trg <- .open_or_create_ncfile(outpathfile, vars)
 
   raster.trg <- brick(nrows=length(lat.trg), ncols=length(lon.trg), xmn=lon.bb[1], xmx=lon.bb[2], ymn=lat.bb[1], ymx=lat.bb[2], nl=length(mon))
 
@@ -267,11 +268,9 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
     }
   }
   close(pb)
-  rm(raster.trg, var, var.trg)
 
   nc_close(nc.src)
   nc_close(nc.trg)
-  setwd(wd.init)
 }
 
 #' Title
