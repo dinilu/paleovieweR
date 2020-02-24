@@ -162,12 +162,7 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
   for(i in 1:length(nc.src$var)){
     setTxtProgressBar(pb, i)
     var <- ncvar_get(nc.src, varid=nc.src$var[[i]]$name)
-    if(nc.src$var[[i]]$units == "degrees C"){
-      var.an <- var - var.bl
-    }
-    if(nc.src$var[[i]]$units == "mm/day"){
-      var.an <- var / (var.bl + 1)
-    }
+    var.an <- var - var.bl
     var.an <- round(var.an, 3)
     ncvar_put(nc.trg, varid=nc.src$var[[i]]$name, var.an)
   }
