@@ -119,9 +119,12 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
   in.path <- dirname(nc.source)
   nc.source <- basename(nc.source)
   
+  baseline.path <- dirname(nc.baseline)
+  nc.baseline <- basename(nc.baseline)
+  
   outpathfile <- paste(out.path, nc.source, sep="/")
   inpathfile <- paste(in.path, nc.source, sep="/")
-  basepathfile <- paste(in.path, nc.baseline, sep="/")
+  basepathfile <- paste(baseline.path, nc.baseline, sep="/")
   
   .check_existing_file(outpathfile, overwrite)
   
