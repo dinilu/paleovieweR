@@ -42,20 +42,20 @@ extrapolate_climate <- function(var, batim, w = c(25, 25),
                                 ext = FALSE) {
 
   lgm_seashore <- batim
-  raster::setValues(lgm_seashore, ifelse(raster::values(lgm_seashore) < -120, NA, raster::values(lgm_seashore)))
+  lgm_seashore <- raster::setValues(lgm_seashore, ifelse(raster::values(lgm_seashore) < -120, NA, raster::values(lgm_seashore)))
 
   mask <- var
-  raster::setValues(mask, ifelse(is.na(raster::values(mask)), NA, 1))
+  mask <- raster::setValues(mask, ifelse(is.na(raster::values(mask)), NA, 1))
 
   mask_mod <- batim
-  raster::setValues(mask_mod, ifelse(raster::values(mask_mod) <= elev_thrs, NA, 1))
+  mask_mod <- raster::setValues(mask_mod, ifelse(raster::values(mask_mod) <= elev_thrs, NA, 1))
 
   dem <- batim
   ll_matrix <- raster::xyFromCell(batim, 1:raster::ncell(batim))
   lat <- batim
-  raster::setValues(lat, ll_matrix[, 2])
+  lat <- raster::setValues(lat, ll_matrix[, 2])
   lon <- batim
-  raster::setValues(lon, ll_matrix[, 1])
+  lon <- raster::setValues(lon, ll_matrix[, 1])
   preds <- raster::stack(dem, lat, lon)
   preds <- preds * mask
   names(preds) <- c("dem", "lat", "lon")
@@ -114,7 +114,7 @@ extrapolate_climate <- function(var, batim, w = c(25, 25),
 
   if(ext == TRUE){
     var_pred <- coeffs$fitted
-    raster::setValues(var_pred, ifelse(is.na(raster::values(var)) & !is.na(raster::values(lgm_seashore)), raster::values(var_pred), raster::values(var)))
+    var_pred <- raster::setValues(var_pred, ifelse(is.na(raster::values(var)) & !is.na(raster::values(lgm_seashore)), raster::values(var_pred), raster::values(var)))
     return(var_pred)
   }else{
     return(coeffs)

@@ -179,10 +179,12 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
 #'
 #' @examples
 interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.factor = 1/5, flush.seq = seq(1000, 10000, by=1000), overwrite = FALSE){
-  # nc.source <- "precipitation-22000BP-15000BP.nc"
-  # out.path <- "interpolated"
-  # downscale.factor <- 0.2
+  # nc.source <- "../Data/PaleoView/NetCDF/croped/anomalies/precipitation-22000BP-15000BP.nc"
+  # out.path <- "../Data/PaleoView/NetCDF/croped/anomalies/interpolated"
   # res.src <- 2.5
+  # downscale.factor <- 1/60
+  # flush.seq <- seq(1000, 10000, by=1000)
+  # overwrite <- FALSE
 
   in.filename <- basename(nc.source)
   
@@ -244,9 +246,9 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
     utils::setTxtProgressBar(pb, i)
     var <- ncdf4::ncvar_get(nc.src, varid=nc.src$var[[i]]$name)
     var <- raster::brick(var)
-    raster::setExtent(var, c(lon.bb[1], lon.bb[2], lat.bb[1], lat.bb[2]))
+    var <- raster::setExtent(var, c(lon.bb[1], lon.bb[2], lat.bb[1], lat.bb[2]))
     var.trg <- raster::resample(var, raster.trg)
-    var.trg <- as.vector(t(var.trg))
+    var.trg <- as.vector(raster::t(var.trg))
     var.trg <- round(var.trg, 3)
     ncdf4::ncvar_put(nc.trg, varid=nc.trg$var[[i]]$name, var.trg)
     if(i %in% flush.seq){

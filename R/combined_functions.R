@@ -85,7 +85,7 @@ combine_anomalies_and_baseline <- function(nc.source, baseline, out.path, flush.
     utils::setTxtProgressBar(pb, i)
     var <- ncdf4::ncvar_get(nc.src, varid=nc.src$var[[i]]$name)
     var <- raster::brick(var)
-    raster::setExtent(var, c(lon.bb[[1]], lon.bb[[2]], lat.bb[[1]], lat.bb[[2]]))
+    var <- raster::setExtent(var, c(lon.bb[[1]], lon.bb[[2]], lat.bb[[1]], lat.bb[[2]]))
 
     if(raster::extent(var) != raster::extent(baseline) || raster::res(var)[1] != raster::res(baseline)[1] || raster::res(var)[2] != raster::res(baseline)[2]){
       stop("NetCDF files and baseline do not match spatially (different extent or resolution).")
