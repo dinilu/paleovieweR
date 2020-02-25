@@ -254,7 +254,7 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
     if(i %in% flush.seq){
       # nc_sync(nc.trg) # Not use this. It doesn't free memory.
       ncdf4::nc_close(nc.trg)
-      nc.trg <- ncdf4::nc_open(nc.source, write=T)
+      nc.trg <- ncdf4::nc_open(outpathfile, write=T)
     }
   }
   close(pb)
