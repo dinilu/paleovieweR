@@ -15,10 +15,10 @@
 .open_or_create_ncfile <- function(nc.source, vars) {
   if(file.exists(nc.source)){
     cat("Opening existing NetCDF file.", "\n")
-    nc.trg <- nc_open(nc.source, write = TRUE)
+    nc.trg <- ncdf4::nc_open(nc.source, write = TRUE)
   }else{
     cat("Creating new NetCDF file.", "\n")
-    nc.trg <- nc_create(nc.source, vars)
+    nc.trg <- ncdf4::nc_create(nc.source, vars)
   }
   return(nc.trg)
 }
@@ -40,34 +40,32 @@ crop_paleoview <- function(nc.source, ext, out.path, overwrite = FALSE){
   # out.path <- "croped"
   # overwrite <- FALSE
  
-  in.path <- dirname(nc.source)
-  nc.source <- basename(nc.source)
+  in.filename <- basename(nc.source)
   
-  outpathfile <- paste(out.path, nc.source, sep="/")
-  inpathfile <- paste(in.path, nc.source, sep="/")
-  
+  outpathfile <- paste(out.path, in.filename, sep="/")
+
   .check_existing_file(outpathfile, overwrite)
   
-  nc <- nc_open(inpathfile)
-  lon <- ncvar_get(nc, "longitudes")
+  nc <- ncdf4::nc_open(nc.source)
+  lon <- ncdf4::ncvar_get(nc, "longitudes")
   lon_i <- which(lon >= ext[1] & lon <= ext[2])
-  lat <- ncvar_get(nc,"latitudes")
+  lat <- ncdf4::ncvar_get(nc,"latitudes")
   lat_i <- which(lat >= ext[3] & lat < ext[4])
-  mon <- ncvar_get(nc, "months")
-  mon_i <- which (mon >= 1 & mon <= 12)
+  mon <- ncdf4::ncvar_get(nc, "months")
+  mon_i <- which(mon >= 1 & mon <= 12)
 
-  londim <- ncdim_def("lon", "degrees_east", lon[lon_i], longname="longitude")
-  latdim <- ncdim_def("lat", "degrees_north", lat[lat_i], longname="latitude")
-  timedim <- ncdim_def("month", "", as.integer(1:12), longname="months")
+  londim <- ncdf4::ncdim_def("lon", "degrees_east", lon[lon_i], longname="longitude")
+  latdim <- ncdf4::ncdim_def("lat", "degrees_north", lat[lat_i], longname="latitude")
+  timedim <- ncdf4::ncdim_def("month", "", as.integer(1:12), longname="months")
 
   fillvalue <- 1e30
 
   varnames <- sapply(1:nc$nvars, function(i, x){x$var[[i]]$name}, nc)
 
   vars <- list()
-  pb <- txtProgressBar(min = 0, max = length(varnames), initial = 1, style=3)
+  pb <- utils::txtProgressBar(min = 0, max = length(varnames), initial = 1, style=3)
   for(i in 7:length(varnames)){
-    setTxtProgressBar(pb, i)
+    utils::setTxtProgressBar(pb, i)
     varname <- nc$var[[i]]$name
     varunits <- nc$var[[i]]$units
     vardim <- list(latdim, londim, timedim)
@@ -77,7 +75,7 @@ crop_paleoview <- function(nc.source, ext, out.path, overwrite = FALSE){
     if(is.null(varshuffle)){ varshuffle <- FALSE }
     varcompression <- nc$var[[i]]$compression
     varchunksizes <- c(length(lat_i), length(lon_i), length(mon_i))
-    vars[[i-6]] <- ncvar_def(varname, varunits, vardim, fillvalue, varlongname, varprec, varshuffle, varcompression, varchunksizes)
+    vars[[i-6]] <- ncdf4::ncvar_def(varname, varunits, vardim, fillvalue, varlongname, varprec, varshuffle, varcompression, varchunksizes)
   }
   close(pb)
   
@@ -85,18 +83,18 @@ crop_paleoview <- function(nc.source, ext, out.path, overwrite = FALSE){
 
   nc.target <- .open_or_create_ncfile(outpathfile, vars)
 
-  pb <- txtProgressBar(min = 0, max = length(varnames), initial = 1, style=3)
+  pb <- utils::txtProgressBar(min = 0, max = length(varnames), initial = 1, style=3)
   for(i in 7:length(varnames)){
-    setTxtProgressBar(pb, i)
-    varvals <- ncvar_get(nc, varnames[[i]])
+    utils::setTxtProgressBar(pb, i)
+    varvals <- ncdf4::ncvar_get(nc, varnames[[i]])
     varvals <- varvals[lon_i, lat_i, mon_i]
     varvals <- aperm(varvals, c(2, 1, 3))
-    ncvar_put(nc.target, varnames[[i]], varvals)
+    ncdf4::ncvar_put(nc.target, varnames[[i]], varvals)
   }
   close(pb)
   
-  nc_close(nc.target)
-  nc_close(nc)
+  ncdf4::nc_close(nc.target)
+  ncdf4::nc_close(nc)
 }
 
 #' Title
@@ -116,29 +114,23 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
   # baseline <- "1951AD-1989AD/1989AD"
   # out.path <- "anomalies"
 
-  in.path <- dirname(nc.source)
-  nc.source <- basename(nc.source)
+  in.filename <- basename(nc.source)
   
-  baseline.path <- dirname(nc.baseline)
-  nc.baseline <- basename(nc.baseline)
-  
-  outpathfile <- paste(out.path, nc.source, sep="/")
-  inpathfile <- paste(in.path, nc.source, sep="/")
-  basepathfile <- paste(baseline.path, nc.baseline, sep="/")
-  
+  outpathfile <- paste(out.path, in.filename, sep="/")
+
   .check_existing_file(outpathfile, overwrite)
   
   # Extract values of baseline conditions
-  nc.bl <- nc_open(basepathfile)
-  var.bl <- ncvar_get(nc.bl, varid=baseline)
+  nc.bl <- ncdf4::nc_open(nc.baseline)
+  var.bl <- ncdf4::ncvar_get(nc.bl, varid=baseline)
 
-  nc.src <- nc_open(inpathfile)
+  nc.src <- ncdf4::nc_open(nc.source)
   varnames <- names(nc.src$var)
   vars <- list()
   
-  pb <- txtProgressBar(min = 0, max = length(varnames), initial = 1, style=3)
+  pb <- utils::txtProgressBar(min = 0, max = length(varnames), initial = 1, style=3)
   for(i in 1:length(varnames)){
-    setTxtProgressBar(pb, i)
+    utils::setTxtProgressBar(pb, i)
     varname <- nc.src$var[[i]]$name
     varunits <- nc.src$var[[i]]$units
     vardim <- nc.src$var[[i]]$dim
@@ -149,7 +141,7 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
     if(is.null(varshuffle)){ varshuffle <- FALSE }
     varcompression <- nc.src$var[[i]]$compression
     varchunksizes <- nc.src$var[[i]]$chunksizes
-    vars[[i]] <- ncvar_def(varname, varunits, vardim, varfillvalue, varlongname, varprec, varshuffle, varcompression, varchunksizes)
+    vars[[i]] <- ncdf4::ncvar_def(varname, varunits, vardim, varfillvalue, varlongname, varprec, varshuffle, varcompression, varchunksizes)
   }
   close(pb)
 
@@ -158,19 +150,19 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
   nc.trg <- .open_or_create_ncfile(outpathfile, vars)
  
   # Extract values of all time periods in the file and compute anomalies
-  pb <- txtProgressBar(min = 0, max = length(nc.src$var), initial = 1, style=3)
+  pb <- utils::txtProgressBar(min = 0, max = length(nc.src$var), initial = 1, style=3)
   for(i in 1:length(nc.src$var)){
-    setTxtProgressBar(pb, i)
-    var <- ncvar_get(nc.src, varid=nc.src$var[[i]]$name)
+    utils::setTxtProgressBar(pb, i)
+    var <- ncdf4::ncvar_get(nc.src, varid=nc.src$var[[i]]$name)
     var.an <- var - var.bl
     var.an <- round(var.an, 3)
-    ncvar_put(nc.trg, varid=nc.src$var[[i]]$name, var.an)
+    ncdf4::ncvar_put(nc.trg, varid=nc.src$var[[i]]$name, var.an)
   }
   close(pb)
 
-  nc_close(nc.bl)
-  nc_close(nc.src)
-  nc_close(nc.trg)
+  ncdf4::nc_close(nc.bl)
+  ncdf4::nc_close(nc.src)
+  ncdf4::nc_close(nc.trg)
 }
 
 
@@ -192,15 +184,13 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
   # downscale.factor <- 0.2
   # res.src <- 2.5
 
-  in.path <- dirname(nc.source)
-  nc.source <- basename(nc.source)
+  in.filename <- basename(nc.source)
   
-  outpathfile <- paste(out.path, nc.source, sep="/")
-  inpathfile <- paste(in.path, nc.source, sep="/")
+  outpathfile <- paste(out.path, in.filename, sep="/")
 
   .check_existing_file(outpathfile, overwrite)
   
-  nc.src <- nc_open(inpathfile)
+  nc.src <- ncdf4::nc_open(nc.source)
   varnames <- names(nc.src$var)
   vars <- list()
 
@@ -208,26 +198,26 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
   half.res.src <- res.src / 2
   half.res.trg <- res.trg / 2
 
-  lon <- ncvar_get(nc.src, "lon")
+  lon <- ncdf4::ncvar_get(nc.src, "lon")
   lon.bb <- c(min(lon) - half.res.src, max(lon) + half.res.src)
   lon.trg <- c(lon.bb[1] + half.res.trg, lon.bb[2] - half.res.trg)
   lon.trg <- seq(lon.trg[1], lon.trg[2], by=res.trg)
 
-  lat <- ncvar_get(nc.src,"lat")
+  lat <- ncdf4::ncvar_get(nc.src,"lat")
   lat.bb <- c(min(lat) - half.res.src, max(lat) + half.res.src)
   lat.trg <- c(lat.bb[1] + half.res.trg, lat.bb[2] - half.res.trg)
   lat.trg <- seq(lat.trg[1], lat.trg[2], by=res.trg)
 
-  mon <- ncvar_get(nc.src, "month")
+  mon <- ncdf4::ncvar_get(nc.src, "month")
 
-  londim <- ncdim_def("lon", "degrees_east", lon.trg, longname="longitude")
-  latdim <- ncdim_def("lat", "degrees_north", lat.trg, longname="latitude")
-  timedim <- ncdim_def("month", "", as.integer(1:12), longname="months")
+  londim <- ncdf4::ncdim_def("lon", "degrees_east", lon.trg, longname="longitude")
+  latdim <- ncdf4::ncdim_def("lat", "degrees_north", lat.trg, longname="latitude")
+  timedim <- ncdf4::ncdim_def("month", "", as.integer(1:12), longname="months")
 
   cat("Creating variables for the new data file:", "\n")
-  pb <- txtProgressBar(min = 0, max = length(varnames), initial = 1, style=3)
+  pb <- utils::txtProgressBar(min = 0, max = length(varnames), initial = 1, style=3)
   for(i in 1:length(varnames)){
-    setTxtProgressBar(pb, i)
+    utils::setTxtProgressBar(pb, i)
     varname <- nc.src$var[[i]]$name
     varunits <- nc.src$var[[i]]$units
     vardim <- list(latdim, londim, timedim)
@@ -238,7 +228,7 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
     if(is.null(varshuffle)){ varshuffle <- FALSE }
     varcompression <- nc.src$var[[i]]$compression
     varchunksizes <- c(length(lat.trg), length(lon.trg), length(mon))
-    vars[[i]] <- ncvar_def(varname, varunits, vardim, varfillvalue, varlongname, varprec, varshuffle, varcompression, varchunksizes)
+    vars[[i]] <- ncdf4::ncvar_def(varname, varunits, vardim, varfillvalue, varlongname, varprec, varshuffle, varcompression, varchunksizes)
   }
   close(pb)
 
@@ -246,29 +236,29 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
   
   nc.trg <- .open_or_create_ncfile(outpathfile, vars)
 
-  raster.trg <- brick(nrows=length(lat.trg), ncols=length(lon.trg), xmn=lon.bb[1], xmx=lon.bb[2], ymn=lat.bb[1], ymx=lat.bb[2], nl=length(mon))
+  raster.trg <- raster::brick(nrows=length(lat.trg), ncols=length(lon.trg), xmn=lon.bb[1], xmx=lon.bb[2], ymn=lat.bb[1], ymx=lat.bb[2], nl=length(mon))
 
   cat("Interpolating variables to the new resolution:", "\n")
-  pb <- txtProgressBar(min = 0, max = length(nc.src$var), initial = 1, style=3)
+  pb <- utils::txtProgressBar(min = 0, max = length(nc.src$var), initial = 1, style=3)
   for(i in 1:length(nc.src$var)){
-    setTxtProgressBar(pb, i)
-    var <- ncvar_get(nc.src, varid=nc.src$var[[i]]$name)
-    var <- brick(var)
-    extent(var) <- c(lon.bb[1], lon.bb[2], lat.bb[1], lat.bb[2])
-    var.trg <- resample(var, raster.trg)
+    utils::setTxtProgressBar(pb, i)
+    var <- ncdf4::ncvar_get(nc.src, varid=nc.src$var[[i]]$name)
+    var <- raster::brick(var)
+    raster::setExtent(var, c(lon.bb[1], lon.bb[2], lat.bb[1], lat.bb[2]))
+    var.trg <- raster::resample(var, raster.trg)
     var.trg <- as.vector(t(var.trg))
     var.trg <- round(var.trg, 3)
-    ncvar_put(nc.trg, varid=nc.trg$var[[i]]$name, var.trg)
+    ncdf4::ncvar_put(nc.trg, varid=nc.trg$var[[i]]$name, var.trg)
     if(i %in% flush.seq){
       # nc_sync(nc.trg) # Not use this. It doesn't free memory.
-      nc_close(nc.trg)
-      nc.trg <- nc_open(nc.source, write=T)
+      ncdf4::nc_close(nc.trg)
+      nc.trg <- ncdf4::nc_open(nc.source, write=T)
     }
   }
   close(pb)
 
-  nc_close(nc.src)
-  nc_close(nc.trg)
+  ncdf4::nc_close(nc.src)
+  ncdf4::nc_close(nc.trg)
 }
 
 #' Title
@@ -283,7 +273,7 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
 #' @examples
 rasterize_paleoview <- function(file, var = names(nc$var)[[1]], ext){
   cat(file, "\n")
-  nc <- nc_open(file)
+  nc <- ncdf4::nc_open(file)
   if(is.numeric(var) == T){
     var <- names(nc$var)[[var]]
   }
@@ -291,8 +281,8 @@ rasterize_paleoview <- function(file, var = names(nc$var)[[1]], ext){
     stop("'var' has to be numeric or character.")
   }
   cat(var, "\n")
-  data <- ncvar_get(nc, var)
-  v <- brick(data, xmn=ext[1], xmx=ext[2], ymn=ext[3], ymx=ext[4])
-  nc_close(nc)
+  data <- ncdf4::ncvar_get(nc, var)
+  v <- raster::brick(data, xmn=ext[1], xmx=ext[2], ymn=ext[3], ymx=ext[4])
+  ncdf4::nc_close(nc)
   return(v)
 }

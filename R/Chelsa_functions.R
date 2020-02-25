@@ -20,7 +20,7 @@ download_chelsa <- function(chelsa_var, months, directory){
       urldir <- paste0("https://www.wsl.ch/lud/chelsa/data/climatologies/", chelsa_var, "/")
       file <- paste0("CHELSA_", chelsa_var, "_", month, "_V1.2_land.tif")
     }
-    download.file(paste0(urldir, file), paste0(output, "/", file), "curl")
+    utils::download.file(paste0(urldir, file), paste0(output, "/", file), "curl")
   }
 }
 
@@ -42,21 +42,21 @@ extrapolate_climate <- function(var, batim, w = c(25, 25),
                                 ext = FALSE) {
 
   lgm_seashore <- batim
-  values(lgm_seashore) <- ifelse(values(lgm_seashore) < -120, NA, values(lgm_seashore))
+  raster::setValues(lgm_seashore, ifelse(raster::values(lgm_seashore) < -120, NA, raster::values(lgm_seashore)))
 
   mask <- var
-  values(mask) <- ifelse(is.na(values(mask)), NA, 1)
+  raster::setValues(mask, ifelse(is.na(raster::values(mask)), NA, 1))
 
   mask_mod <- batim
-  values(mask_mod) <- ifelse(values(mask_mod) <= elev_thrs, NA, 1)
+  raster::setValues(mask_mod, ifelse(raster::values(mask_mod) <= elev_thrs, NA, 1))
 
   dem <- batim
-  ll_matrix <- raster::xyFromCell(batim, 1:ncell(batim))
+  ll_matrix <- raster::xyFromCell(batim, 1:raster::ncell(batim))
   lat <- batim
-  values(lat) <- ll_matrix[, 2]
+  raster::setValues(lat, ll_matrix[, 2])
   lon <- batim
-  values(lon) <- ll_matrix[, 1]
-  preds <- stack(dem, lat, lon)
+  raster::setValues(lon, ll_matrix[, 1])
+  preds <- raster::stack(dem, lat, lon)
   preds <- preds * mask
   names(preds) <- c("dem", "lat", "lon")
 
@@ -66,25 +66,25 @@ extrapolate_climate <- function(var, batim, w = c(25, 25),
   lat_est <- intercept
   lon_est <- intercept
 
-  pb <- txtProgressBar(min = 0, max = nrow(preds), initial = 1, style=3)
+  pb <- utils::txtProgressBar(min = 0, max = nrow(preds), initial = 1, style=3)
   for (rl in 1:nrow(preds)) {
-    setTxtProgressBar(pb, rl)
-    x <- getValuesFocal(preds * mask_mod, row = rl, nrows = 1, ngb = w, array = FALSE)
+    utils::setTxtProgressBar(pb, rl)
+    x <- raster::getValuesFocal(preds * mask_mod, row = rl, nrows = 1, ngb = w, array = FALSE)
     x_int <- rep(NA, nrow(x[[1]]))
     x1 <- rep(NA, nrow(x[[1]]))
     x2 <- rep(NA, nrow(x[[1]]))
     x3 <- rep(NA, nrow(x[[1]]))
-    y <- getValuesFocal(var * mask_mod, row = rl, nrows = 1, ngb = w, array = FALSE)
+    y <- raster::getValuesFocal(var * mask_mod, row = rl, nrows = 1, ngb = w, array = FALSE)
 
     for (i in 1:nrow(x[[1]])) {
-      xy <- na.omit(data.frame(x1 = x[[1]][i, ],
+      xy <- stats::na.omit(data.frame(x1 = x[[1]][i, ],
                                x2 = x[[2]][i, ],
                                x3 = x[[3]][i, ],
                                y = y[i, ]))
 
       if (nrow(xy) > ncell_thrs & nrow(xy) <= 624) {
         # if (nrow(xy) > ncell_thrs) {
-        coefs <- coefficients(lm(as.numeric(xy$y) ~ as.numeric(xy$x1) +
+        coefs <- stats::coefficients(stats::lm(as.numeric(xy$y) ~ as.numeric(xy$x1) +
                                    as.numeric(xy$x2) + as.numeric(xy$x3)))
 
         x_int[i] <- coefs[1]
@@ -107,14 +107,14 @@ extrapolate_climate <- function(var, batim, w = c(25, 25),
   }
   close(pb)
 
-  coeffs <- stack(intercept, dem_est, lat_est, lon_est,
+  coeffs <- raster::stack(intercept, dem_est, lat_est, lon_est,
                   (intercept + dem * dem_est +
                      lat * lat_est + lon * lon_est), var)
   names(coeffs) <- c("intercept", "dem_est", "lat_est", "lon_est", "fitted", "observed")
 
   if(ext == TRUE){
     var_pred <- coeffs$fitted
-    values(var_pred) <- ifelse(is.na(values(var)) & !is.na(values(lgm_seashore)), values(var_pred), values(var))
+    raster::setValues(var_pred, ifelse(is.na(raster::values(var)) & !is.na(raster::values(lgm_seashore)), raster::values(var_pred), raster::values(var)))
     return(var_pred)
   }else{
     return(coeffs)
