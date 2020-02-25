@@ -102,8 +102,9 @@ combine_anomalies_and_baseline <- function(nc.source, baseline, out.path, flush.
     var <- round(var, 3)
     ncdf4::ncvar_put(nc.trg, varid=nc.trg$var[[i]]$name, var)
     if(i %in% flush.seq){
-      ncdf4::nc_close(nc.trg)
-      nc.trg <- ncdf4::nc_open(nc.source, write=T)
+      nc.trg <- .flush_ncfile(nc.trg)
+      # ncdf4::nc_close(nc.trg)
+      # nc.trg <- ncdf4::nc_open(nc.source, write=T)
     }
   }
   close(pb)

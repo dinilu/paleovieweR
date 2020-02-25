@@ -23,6 +23,13 @@
   return(nc.trg)
 }
 
+.flush_ncfile <- function(nc){
+  nc.file <- nc$filename
+  ncdf4::nc_close(nc)
+  nc <- ncdf4::nc_open(nc.file, write=T)
+  return(nc)
+}
+
 #' Crop PaleoView NetCDF files
 #'
 #' @param file
@@ -252,9 +259,10 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
     var.trg <- round(var.trg, 3)
     ncdf4::ncvar_put(nc.trg, varid=nc.trg$var[[i]]$name, var.trg)
     if(i %in% flush.seq){
+      nc.trg <- .flush_ncfile(nc.trg)
       # nc_sync(nc.trg) # Not use this. It doesn't free memory.
-      ncdf4::nc_close(nc.trg)
-      nc.trg <- ncdf4::nc_open(outpathfile, write=T)
+      # ncdf4::nc_close(nc.trg)
+      # nc.trg <- ncdf4::nc_open(outpathfile, write=T)
     }
   }
   close(pb)
