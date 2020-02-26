@@ -9,12 +9,12 @@
 #'
 #' @examples
 # combine_anomalies_and_baseline <- function(nc.source, baseline, out.path, init.i=NULL, end.i=NULL){
-combine_anomalies_and_baseline <- function(nc.source, baseline, out.path, flush.seq = seq(1000, 10000, by=1000), overwrite = FALSE){
+combine_anomalies_and_baseline <- function(nc.source, baseline, out.path, flush.seq = seq(1000, 10000, by=1000), overwrite = FALSE, suppress_dimvals = TRUE){
   # nc.source <- "precipitation-22000BP-15000BP.nc"
   # baseline <- prec
   # out.path <- "/home/dinilu/Med-Refugia/Data/PaleoView_Downscaled"
 
-  nc.src <- ncdf4::nc_open(nc.source)
+  nc.src <- ncdf4::nc_open(nc.source, suppress_dimvals = supress_dimvals)
   varnames <- names(nc.src$var)
 
   pathfile <- paste(out.path, nc.source, sep="/")
@@ -63,7 +63,7 @@ combine_anomalies_and_baseline <- function(nc.source, baseline, out.path, flush.
 
   # if(init.i != 1){
   #   cat("Opening NetCDF file.", "\n")
-  #   nc.trg <- nc_open(nc.source, write=TRUE)
+  #   nc.trg <- nc_open(nc.source, write=TRUE, suppress_dimvals = supress_dimvals)
   # }else{
   #   cat("Creating new file.", "\n")
   #   nc.trg <- nc_create(nc.source, vars)
@@ -71,7 +71,7 @@ combine_anomalies_and_baseline <- function(nc.source, baseline, out.path, flush.
 
   if(file.exists(nc.source)){
     cat("Opening existing NetCDF file.", "\n")
-    nc.trg <- ncdf4::nc_open(nc.source, write = TRUE)
+    nc.trg <- ncdf4::nc_open(nc.source, write = TRUE, suppress_dimvals = supress_dimvals)
   }else{
     cat("Creating new NetCDF file.", "\n")
     nc.trg <- ncdf4::nc_create(nc.source, vars)
@@ -102,9 +102,9 @@ combine_anomalies_and_baseline <- function(nc.source, baseline, out.path, flush.
     var <- round(var, 3)
     ncdf4::ncvar_put(nc.trg, varid=nc.trg$var[[i]]$name, var)
     if(i %in% flush.seq){
-      nc.trg <- .flush_ncfile(nc.trg)
+      nc.trg <- .flush_ncfile(nc.trg, suppress_dimvals = supress_dimvals)
       # ncdf4::nc_close(nc.trg)
-      # nc.trg <- ncdf4::nc_open(nc.source, write=T)
+      # nc.trg <- ncdf4::nc_open(nc.source, write=T, suppress_dimvals = supress_dimvals)
     }
   }
   close(pb)
