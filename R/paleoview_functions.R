@@ -15,7 +15,7 @@
 .open_or_create_ncfile <- function(nc.source, vars, suppress_dimvals = TRUE) {
   if(file.exists(nc.source)){
     cat("Opening existing NetCDF file.", "\n")
-    nc.trg <- ncdf4::nc_open(nc.source, write = TRUE, suppress_dimvals = supress_dimvals)
+    nc.trg <- ncdf4::nc_open(nc.source, write = TRUE, suppress_dimvals = suppress_dimvals)
   }else{
     cat("Creating new NetCDF file.", "\n")
     nc.trg <- ncdf4::nc_create(nc.source, vars)
@@ -26,7 +26,7 @@
 .flush_ncfile <- function(nc, suppress_dimvals = TRUE){
   nc.file <- nc$filename
   ncdf4::nc_close(nc)
-  nc <- ncdf4::nc_open(nc.file, write=T, suppress_dimvals = supress_dimvals)
+  nc <- ncdf4::nc_open(nc.file, write=T, suppress_dimvals = suppress_dimvals)
   return(nc)
 }
 
@@ -53,7 +53,7 @@ crop_paleoview <- function(nc.source, ext, out.path, overwrite = FALSE, suppress
 
   .check_existing_file(outpathfile, overwrite)
   
-  nc <- ncdf4::nc_open(nc.source, suppress_dimvals = supress_dimvals)
+  nc <- ncdf4::nc_open(nc.source, suppress_dimvals = suppress_dimvals)
   lon <- ncdf4::ncvar_get(nc, "longitudes")
   lon_i <- which(lon >= ext[1] & lon <= ext[2])
   lat <- ncdf4::ncvar_get(nc,"latitudes")
@@ -88,7 +88,7 @@ crop_paleoview <- function(nc.source, ext, out.path, overwrite = FALSE, suppress
   
   .check_and_create_directory(out.path)
 
-  nc.target <- .open_or_create_ncfile(outpathfile, vars, suppress_dimvals = supress_dimvals)
+  nc.target <- .open_or_create_ncfile(outpathfile, vars, suppress_dimvals = suppress_dimvals)
 
   pb <- utils::txtProgressBar(min = 0, max = length(varnames), initial = 1, style=3)
   for(i in 7:length(varnames)){
@@ -128,10 +128,10 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
   .check_existing_file(outpathfile, overwrite)
   
   # Extract values of baseline conditions
-  nc.bl <- ncdf4::nc_open(nc.baseline, suppress_dimvals = supress_dimvals)
+  nc.bl <- ncdf4::nc_open(nc.baseline, suppress_dimvals = suppress_dimvals)
   var.bl <- ncdf4::ncvar_get(nc.bl, varid=baseline)
 
-  nc.src <- ncdf4::nc_open(nc.source, suppress_dimvals = supress_dimvals)
+  nc.src <- ncdf4::nc_open(nc.source, suppress_dimvals = suppress_dimvals)
   varnames <- names(nc.src$var)
   vars <- list()
   
@@ -154,7 +154,7 @@ calculate_anomalies <- function(nc.source, nc.baseline, baseline, out.path, over
 
   .check_and_create_directory(out.path)
   
-  nc.trg <- .open_or_create_ncfile(outpathfile, vars, suppress_dimvals = supress_dimvals)
+  nc.trg <- .open_or_create_ncfile(outpathfile, vars, suppress_dimvals = suppress_dimvals)
  
   # Extract values of all time periods in the file and compute anomalies
   pb <- utils::txtProgressBar(min = 0, max = length(nc.src$var), initial = 1, style=3)
@@ -199,7 +199,7 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
 
   .check_existing_file(outpathfile, overwrite)
   
-  nc.src <- ncdf4::nc_open(nc.source, suppress_dimvals = supress_dimvals)
+  nc.src <- ncdf4::nc_open(nc.source, suppress_dimvals = suppress_dimvals)
   varnames <- names(nc.src$var)
   vars <- list()
 
@@ -243,7 +243,7 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
 
   .check_and_create_directory(out.path)
   
-  nc.trg <- .open_or_create_ncfile(outpathfile, vars, suppress_dimvals = supress_dimvals)
+  nc.trg <- .open_or_create_ncfile(outpathfile, vars, suppress_dimvals = suppress_dimvals)
 
   raster.trg <- raster::brick(nrows=length(lat.trg), ncols=length(lon.trg), xmn=lon.bb[1], xmx=lon.bb[2], ymn=lat.bb[1], ymx=lat.bb[2], nl=length(mon))
 
@@ -259,10 +259,10 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
     var.trg <- round(var.trg, 3)
     ncdf4::ncvar_put(nc.trg, varid=nc.trg$var[[i]]$name, var.trg)
     if(i %in% flush.seq){
-      nc.trg <- .flush_ncfile(nc.trg, suppress_dimvals = supress_dimvals)
+      nc.trg <- .flush_ncfile(nc.trg, suppress_dimvals = suppress_dimvals)
       # nc_sync(nc.trg) # Not use this. It doesn't free memory.
       # ncdf4::nc_close(nc.trg)
-      # nc.trg <- ncdf4::nc_open(outpathfile, write=T, suppress_dimvals = supress_dimvals)
+      # nc.trg <- ncdf4::nc_open(outpathfile, write=T, suppress_dimvals = suppress_dimvals)
     }
   }
   close(pb)
@@ -283,7 +283,7 @@ interpolate_paleoview <- function(nc.source, out.path, res.src = 2.5, downscale.
 #' @examples
 rasterize_paleoview <- function(file, var = names(nc$var)[[1]], ext, suppress_dimvals = TRUE){
   cat(file, "\n")
-  nc <- ncdf4::nc_open(file, suppress_dimvals = supress_dimvals)
+  nc <- ncdf4::nc_open(file, suppress_dimvals = suppress_dimvals)
   if(is.numeric(var) == T){
     var <- names(nc$var)[[var]]
   }
