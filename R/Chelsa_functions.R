@@ -29,6 +29,7 @@ download_chelsa <- function(chelsa_var, months, directory){
 #' @param var
 #' @param batim
 #' @param w
+#' @param depth  
 #' @param elev_thrs
 #' @param ncell_thrs
 #' @param ext
