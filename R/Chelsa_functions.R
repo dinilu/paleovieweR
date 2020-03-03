@@ -38,7 +38,7 @@ download_chelsa <- function(chelsa_var, months, directory){
 #' @export
 #'
 #' @examples
-extrapolate_climate <- function(var, batim, w = c(25, 25), depth = -120
+extrapolate_climate <- function(var, batim, w = c(25, 25), depth = -120,
                                 elev_thrs = 20, ncell_thrs = 50,
                                 ext = FALSE) {
   # var = prec[[1]]
